@@ -1,0 +1,317 @@
+generator client {
+  provider = "prisma-client-js"
+  // output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                 String             @id @default(cuid())
+  email              String             @unique
+  password           String
+  firstName          String
+  lastName           String
+  bio                String?
+  avatar             String?
+  graduationYear     Int?
+  currentJob         String?
+  currentCompany     String?
+  skills             String[]
+  isMentor           Boolean            @default(false)
+  mentorshipAreas    String[]
+  role               UserRole           @default(ALUMNI)
+  emailVerified      Boolean            @default(false)
+  isActive           Boolean            @default(true)
+  verificationStatus VerificationStatus @default(PENDING)
+  collegeEmail       String?            @unique
+  branch             String?
+
+  // Add this relation:
+  verificationRequests VerificationRequest[]
+
+  // Relations
+  profile                Profile?
+  sentMessages           Message[]       @relation("MessageSender")
+  receivedMessages       Message[]       @relation("MessageReceiver")
+  posts                  Post[]
+  EventResponse          EventResponse[]
+  connectionsAsInitiator Connection[]    @relation("ConnectionInitiator")
+  connectionsAsReceiver  Connection[]    @relation("ConnectionReceiver")
+  jobPostings            JobPosting[]
+  createdEvents          Event[]         @relation("EventCreator")
+  forumThreads           ForumThread[]
+  forumPosts             ForumPost[]
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  likes     Like[]
+  comments  Comment[]
+  resources Resource[]
+
+  @@map("users")
+}
+
+model Post {
+  id       String  @id @default(cuid())
+  title    String
+  content  String
+  image    String?
+  isPublic Boolean @default(true)
+
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+
+  // Post interactions
+  likes    Like[]
+  comments Comment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("posts")
+}
+
+model Like {
+  id     String @id @default(cuid())
+  userId String
+  postId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, postId])
+  @@map("likes")
+}
+
+model Comment {
+  id      String @id @default(cuid())
+  content String
+  userId  String
+  postId  String
+  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post    Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+model Profile {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phone       String?
+  website     String?
+  linkedinUrl String?
+  githubUrl   String?
+  twitterUrl  String?
+  address     Json? // {street, city, state, country, zipCode}
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+model Message {
+  id         String  @id @default(cuid())
+  content    String
+  senderId   String
+  receiverId String
+  sender     User    @relation("MessageSender", fields: [senderId], references: [id])
+  receiver   User    @relation("MessageReceiver", fields: [receiverId], references: [id])
+  isRead     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("messages")
+}
+
+model Connection {
+  id          String           @id @default(cuid())
+  initiatorId String
+  receiverId  String
+  initiator   User             @relation("ConnectionInitiator", fields: [initiatorId], references: [id])
+  receiver    User             @relation("ConnectionReceiver", fields: [receiverId], references: [id])
+  status      ConnectionStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([initiatorId, receiverId])
+  @@map("connections")
+}
+
+model Event {
+  id           String   @id @default(cuid())
+  title        String
+  description  String
+  date         DateTime
+  location     String
+  isVirtual    Boolean  @default(false)
+  meetingLink  String?
+  image        String?
+  maxAttendees Int?
+  creatorId    String
+  creator      User     @relation("EventCreator", fields: [creatorId], references: [id])
+
+  response EventResponse[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("events")
+}
+
+model EventResponse {
+  id      String         @id @default(cuid())
+  eventId String
+  userId  String
+  event   Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status  ResponseStatus @default(PENDING)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([eventId, userId])
+  @@map("event_responses")
+}
+
+model JobPosting {
+  id             String         @id @default(cuid())
+  title          String
+  description    String
+  company        String
+  location       String
+  isRemote       Boolean        @default(false)
+  employmentType EmploymentType
+  salaryRange    String?
+  applyLink      String?
+  expiryDate     DateTime?
+  isActive       Boolean        @default(true)
+
+  posterId String
+  poster   User   @relation(fields: [posterId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("job_postings")
+}
+
+model ForumThread {
+  id          String  @id @default(cuid())
+  title       String
+  description String
+  category    String
+  isLocked    Boolean @default(false)
+
+  authorId String
+  author   User        @relation(fields: [authorId], references: [id])
+  posts    ForumPost[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("forum_threads")
+}
+
+model ForumPost {
+  id      String @id @default(cuid())
+  content String
+
+  authorId String
+  author   User        @relation(fields: [authorId], references: [id])
+  threadId String
+  thread   ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("forum_posts")
+}
+
+model Resource {
+  id           String       @id @default(cuid())
+  title        String
+  description  String
+  fileUrl      String?
+  externalLink String?
+  type         ResourceType
+
+  uploaderId String
+  uploader   User   @relation(fields: [uploaderId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("resources")
+}
+
+model VerificationRequest {
+  id           String             @id @default(cuid())
+  userId       String             @unique
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  collegeEmail String?
+  documents    Json?
+  status       VerificationStatus @default(PENDING)
+  reviewedBy   String?
+  reviewNotes  String?
+  reviewedAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("verification_requests")
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  UNDER_REVIEW
+}
+
+// Enums
+enum UserRole {
+  ALUMNI
+  STUDENT
+  TEACHER
+  ADMIN
+}
+
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  BLOCKED
+}
+
+enum ResponseStatus {
+  GOING
+  NOT_GOING
+  MAYBE
+  PENDING
+}
+
+enum EmploymentType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  FREELANCE
+}
+
+enum ResourceType {
+  DOCUMENT
+  LINK
+  VIDEO
+  OTHER
+}
