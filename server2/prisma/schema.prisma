@@ -63,8 +63,7 @@ model Post {
 
   authorId String
   author   User   @relation(fields: [authorId], references: [id])
-
-  // Post interactions
+ 
   // likes    Like[]
   // comments Comment[]
 

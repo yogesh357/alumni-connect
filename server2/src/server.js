@@ -23,7 +23,6 @@ import postRoutes from './routes/postRoutes.js';
 import eventRoutes from './routes/eventRoutes.js';
 import jobRoutes from './routes/jobRoutes.js';
 import messageRoutes from './routes/messageRoutes.js';
-import donationRoutes from './routes/donationRoutes.js';
 
 // Use routes
 app.use('/api/auth', authRoutes);
@@ -32,15 +31,15 @@ app.use('/api/admin', adminRoutes);
 
 app.use('/api/verification', verificationRoutes);
 
-app.use('/api/connections', connectionRoutes);
+app.use('/api/connections', connectionRoutes);//* Should we remove this ?
+app.use('/api/messages', messageRoutes);
+app.use('/api/jobs', jobRoutes);
 
 app.use('/api/posts', postRoutes);
 app.use('/api/events', eventRoutes);
-app.use('/api/jobs', jobRoutes);
-app.use('/api/messages', messageRoutes);
-app.use('/api/donations', donationRoutes);
+//TODO : remaning                         
+// app.use('/api/donations', donationRoutes);  
 
-// Health check
 app.get('/api/health', (req, res) => {
     res.status(200).json({
         status: 'OK',
@@ -49,7 +48,6 @@ app.get('/api/health', (req, res) => {
     });
 });
 
-// 404 handler
 app.use('*', (req, res) => {
     res.status(404).json({
         success: false,
